@@ -16,7 +16,97 @@
 # Author: Muyuan Shen <muyuan_shen@hust.edu.cn>
 
 
+import os
+import subprocess
+import sys
 from setuptools import setup, find_packages
+
+
+def generate_proto():
+    """Generate messages_pb2.py from messages.proto.
+
+    The generated file is version-tied to the installed protobuf runtime, so
+    it must NOT be committed to the repository; instead it is regenerated here
+    each time the package is (re-)installed.
+
+    Resolution order:
+      1. grpc_tools.protoc  – ships with grpcio-tools, always version-matched
+      2. system ``protoc``  – available when protobuf-compiler is installed
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    proto_file = os.path.abspath(
+        os.path.join(script_dir, "..", "messages.proto")
+    )
+    proto_dir = os.path.dirname(proto_file)
+    out_dir = os.path.join(script_dir, "ns3ai_gym_env")
+
+    if not os.path.isfile(proto_file):
+        print(
+            "WARNING: messages.proto not found at {}; "
+            "messages_pb2.py will not be generated.".format(proto_file),
+            file=sys.stderr,
+        )
+        return
+
+    # 1. Try grpc_tools (always version-matched to the installed protobuf).
+    try:
+        import grpc_tools
+        from grpc_tools import protoc as grpc_protoc
+
+        # grpc_tools bundles google/protobuf/*.proto under its _proto dir.
+        grpc_proto_include = os.path.join(
+            os.path.dirname(grpc_tools.__file__), "_proto"
+        )
+        ret = grpc_protoc.main(
+            [
+                "grpc_tools.protoc",
+                "-I{}".format(proto_dir),
+                "-I{}".format(grpc_proto_include),
+                "--python_out={}".format(out_dir),
+                proto_file,
+            ]
+        )
+        if ret == 0:
+            print("ns3ai_gym_env setup: generated messages_pb2.py via grpc_tools")
+            return
+    except ImportError:
+        pass
+
+    # 2. Fall back to the system protoc binary.
+    try:
+        result = subprocess.run(
+            [
+                "protoc",
+                "-I{}".format(proto_dir),
+                "--python_out={}".format(out_dir),
+                proto_file,
+            ],
+            check=True,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        print("ns3ai_gym_env setup: generated messages_pb2.py via system protoc")
+        return
+    except subprocess.CalledProcessError as exc:
+        print(
+            "WARNING: system protoc failed:\n{}".format(exc.stderr),
+            file=sys.stderr,
+        )
+    except FileNotFoundError:
+        pass
+
+    print(
+        "WARNING: Could not generate messages_pb2.py from messages.proto.\n"
+        "The ns3ai_gym_env package will not work until this file exists.\n"
+        "To fix, choose one of:\n"
+        "  1. Build the project with CMake first (./ns3 build ai)\n"
+        "  2. pip install grpcio-tools  then re-install this package\n"
+        "  3. sudo apt install protobuf-compiler  then re-install this package",
+        file=sys.stderr,
+    )
+
+
+generate_proto()
 
 setup(
     name="ns3ai_gym_env",
