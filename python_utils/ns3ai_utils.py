@@ -139,6 +139,7 @@ class Experiment:
     def __del__(self):
         self.kill()
         del self.msgInterface
+        Experiment._created = False
         print('ns3ai_utils: Experiment destroyed')
 
     # run ns3 script in cmd with the setting being input
