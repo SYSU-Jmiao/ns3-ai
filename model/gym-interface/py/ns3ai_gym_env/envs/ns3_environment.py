@@ -1,7 +1,7 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-import messages_pb2 as pb
+from .. import messages_pb2 as pb
 import ns3ai_gym_msg_py as py_binding
 from ns3ai_utils import Experiment
 
@@ -25,13 +25,13 @@ class Ns3Env(gym.Env):
             mtype = boxSpacePb.dtype
 
             if mtype == pb.INT:
-                mtype = np.int
+                mtype = int
             elif mtype == pb.UINT:
-                mtype = np.uint
+                mtype = np.uint32
             elif mtype == pb.DOUBLE:
-                mtype = np.float
+                mtype = float
             else:
-                mtype = np.float
+                mtype = float
 
             space = spaces.Box(low=low, high=high, shape=shape, dtype=mtype)
 
@@ -336,3 +336,4 @@ class Ns3Env(gym.Env):
         self.exp.kill()
         # destroy the message interface and its shared memory segment
         del self.exp
+        Ns3Env._created = False

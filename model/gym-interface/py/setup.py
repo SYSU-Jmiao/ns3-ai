@@ -16,10 +16,11 @@
 # Author: Muyuan Shen <muyuan_shen@hust.edu.cn>
 
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="ns3ai_gym_env",
     version="0.0.1",
+    packages=find_packages(),
     install_requires=["numpy", "gymnasium", "protobuf"],
 )
